@@ -1,0 +1,25 @@
+/* AdminPage.scss */
+
+.Admin {
+    /* Định dạng cho phần Menu */
+    .ant-menu-item-selected {
+      background-color: rgb(129, 170, 204) !important;
+      color: rgb(0, 0, 0) !important;
+      width: 220px
+    
+    }
+  
+
+  
+    .ant-menu-item-selected:focus {
+        background-color: rgb(129, 170, 204) !important;
+      color: rgb(0, 0, 0) !important;
+      width: 220px;
+      
+    }
+  }
+
+  .admin-content {
+    background-color: rgb(245, 245, 245);
+  }
+  

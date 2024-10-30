@@ -1,15 +1,21 @@
 import React, { useState, useEffect } from "react";
-import "./SignInPage.scss";
+import "./SingInPage.scss";
 import { useNavigate } from "react-router-dom";
+import * as UserService from "../../services/UserService";
+import { UseMutationHooks } from "../../hooks/UseMutationHook";
+import * as message from "../../components/Message/Message";
+import { jwtDecode } from "jwt-decode";
+import { useDispatch } from "react-redux";
+import { updateUser } from "../../redux/counter/userSlide";
 
 const SignInPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isFormValid, setIsFormValid] = useState(false);
-  const [errorMessage, setErrorMessage] = useState(""); // Thêm state để lưu thông báo lỗi
 
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
   useEffect(() => {
     const isFormValid = email && password;
@@ -18,42 +24,45 @@ const SignInPage = () => {
 
   const handleOnchangeEmail = (event) => {
     setEmail(event.target.value);
-    setErrorMessage(""); // Reset thông báo lỗi khi nhập lại
   };
 
   const handleOnchangePassword = (event) => {
     setPassword(event.target.value);
-    setErrorMessage(""); // Reset thông báo lỗi khi nhập lại
   };
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
   };
 
-  const handleSignIn = async () => {
-    if (isFormValid) {
-      try {
-        const response = await fetch("http://localhost:3001/api/users/signin", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ email, password }),
-        });
+  const mutation = UseMutationHooks((data) => UserService.loginUser(data));
 
-        const data = await response.json();
-        console.log(data); // In ra dữ liệu phản hồi
-
-        if (data.status === "ERR") {
-          setErrorMessage(data.message || "Đã xảy ra lỗi khi đăng nhập");
-        } else {
-          console.log("Đăng nhập thành công:", data);
-          navigate("/home"); // Điều hướng tới trang chính
+  const { data } = mutation;
+  useEffect(() => {
+    if (data && data.status === "OK") {
+      message.success();
+      navigate("/");
+      localStorage.setItem("access_token", JSON.stringify(data.access_token));
+      if (data?.access_token) {
+        const decoded = jwtDecode(data?.access_token);
+        console.log("decoed", decoded);
+        if (decoded && decoded?.id) {
+          handleGetDetailsUser(decoded?.id, data?.access_token);
         }
-      } catch (error) {
-        console.error("Lỗi khi gọi API:", error);
-        setErrorMessage("Đã xảy ra lỗi trong quá trình kết nối với server");
       }
+    }
+  });
+  const handleGetDetailsUser = async (id, token) => {
+    const res = await UserService.getDetailsUser(id, token);
+    dispatch(updateUser({ ...res?.data, access_token: token }));
+    console.log("res", res);
+  };
+
+  const handleSignIn = () => {
+    if (isFormValid) {
+      mutation.mutate({
+        email,
+        password,
+      });
     }
   };
 
@@ -77,7 +86,7 @@ const SignInPage = () => {
           Bạn chưa có tài khoản? Đăng ký
           <span
             className="link-signup px-2"
-            onClick={() => navigate("/signup")}
+            onClick={() => navigate("/singup")}
             style={{ cursor: "pointer", color: "blue" }}
           >
             tại đây
@@ -96,7 +105,7 @@ const SignInPage = () => {
               placeholder="Email"
               value={email}
               onChange={handleOnchangeEmail}
-            />
+            ></input>
           </div>
           <div className="form-Signup-Input">
             <label>
@@ -116,12 +125,16 @@ const SignInPage = () => {
                 }`}
                 onClick={togglePasswordVisibility}
                 style={{ cursor: "pointer" }}
-              />
+              ></i>
             </div>
           </div>
-          {errorMessage && <p className="error-message">{errorMessage}</p>} {/* Hiện thông báo lỗi */}
         </form>
 
+        {data?.status === "ERR" && (
+          <span style={{ color: "red", fontSize: "14px" }}>
+            {data?.message}
+          </span>
+        )}
         <div className="button-signup">
           <p
             className="text-center py-3"
